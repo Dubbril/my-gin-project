@@ -1,12 +1,22 @@
 package config
 
-// Configuration struct if needed
-type Configuration struct {
-	// Add your configuration fields here
+type DatabaseConfig struct {
+	Host       string
+	User       string
+	DBName     string
+	SSLMode    string
+	Password   string
+	SearchPath string
 }
 
-// LoadConfig loads the configuration
-func LoadConfig() *Configuration {
-	// Implement your configuration loading logic
-	return &Configuration{}
+// NewDatabaseConfig initializes a new DatabaseConfig with default values
+func NewDatabaseConfig() *DatabaseConfig {
+	return &DatabaseConfig{
+		Host:       "localhost",
+		User:       "postgres",
+		DBName:     "postgres",
+		SSLMode:    "disable",
+		Password:   "bit@1234",
+		SearchPath: "test",
+	}
 }

@@ -1,12 +1,16 @@
+// main.go
 package main
 
 import (
+	"fmt"
 	"github.com/Dubbril/my-gin-project/com/dubbril/learn/gin_framework/controllers"
 	"github.com/Dubbril/my-gin-project/com/dubbril/learn/gin_framework/database"
+	"github.com/Dubbril/my-gin-project/com/dubbril/learn/gin_framework/middleware"
 	"github.com/Dubbril/my-gin-project/com/dubbril/learn/gin_framework/repositories"
 	"github.com/Dubbril/my-gin-project/com/dubbril/learn/gin_framework/services"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -19,8 +23,15 @@ func main() {
 		}
 	}(database.GetDB())
 
+	// Set Gin to release mode to disable debug output
+	gin.SetMode(gin.ReleaseMode)
+
 	// Create Gin router
-	r := gin.Default()
+	//r := gin.Default()
+	r := gin.New()
+
+	// Use the logger middleware
+	r.Use(middleware.LogHandler())
 
 	// Initialize repository and service
 	userRepo := repositories.NewUserRepository(database.GetDB())
@@ -30,15 +41,16 @@ func main() {
 	userController := controllers.NewUserController(userService)
 
 	// Define routes
-	r.POST(`/users`, userController.Create)
-	r.GET(`/users`, userController.GetAll)
-	r.GET(`/users/:id`, userController.GetByID)
-	r.PUT(`/users/:id`, userController.Update)
-	r.DELETE(`/users/:id`, userController.Delete)
+	r.POST("/users", userController.Create)
+	r.GET("/users", userController.GetAll)
+	r.GET("/users/:id", userController.GetByID)
+	r.PUT("/users/:id", userController.Update)
+	r.DELETE("/users/:id", userController.Delete)
 
 	// Run the application
-	err := r.Run(":8080")
+	port := 8080
+	err := r.Run(fmt.Sprintf(":%d", port))
 	if err != nil {
-		return
+		logrus.Fatal(err)
 	}
 }
