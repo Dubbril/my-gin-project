@@ -1,0 +1,2 @@
+postgres:
+  connection: "host=localhost user=postgres dbname=postgres sslmode=disable password=bit@1234 search_path=test"

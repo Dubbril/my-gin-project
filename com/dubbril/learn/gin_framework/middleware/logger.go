@@ -2,15 +2,25 @@ package middleware
 
 import (
 	"bytes"
-	"encoding/json"
-	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 	"io"
+	"os"
+	"strconv"
 	"time"
 )
 
+func logger() zerolog.Logger {
+	return zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
+		Level(zerolog.TraceLevel).
+		With().
+		Timestamp().
+		Logger()
+}
+
 // LogHandler is a middleware function to log information about incoming requests and outgoing responses.
 func LogHandler() gin.HandlerFunc {
+	logger := logger()
 	return func(c *gin.Context) {
 		// Capture request details
 		startTime := time.Now()
@@ -20,12 +30,18 @@ func LogHandler() gin.HandlerFunc {
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(requestBytes)) // Reset the request body for further use
 		}
 
-		// Create a custom response writer
-		w := &responseLogger{body: bytes.NewBuffer(nil), ResponseWriter: c.Writer}
-
 		// Get the value of the X-Correlation-ID header
 		correlationID := c.GetHeader("X-Correlation-ID")
+		logger.Info().
+			Str("SERVICE", "MY_GIN_SERVICE").
+			Str("CORRELATION_ID", correlationID).
+			Str("METHOD", c.Request.Method).
+			Str("URL", c.Request.URL.RequestURI()).
+			Str("CLIENT_IP", c.ClientIP()).
+			Msg(string(requestBytes))
 
+		// Create a custom response writer
+		w := &responseLogger{body: bytes.NewBuffer(nil), ResponseWriter: c.Writer}
 		// Continue with processing the request
 		c.Writer = w
 		c.Next()
@@ -35,30 +51,12 @@ func LogHandler() gin.HandlerFunc {
 		responseStatus := w.status
 		duration := time.Since(startTime)
 
-		// Log information about the request
-		var prettyRequestJSON bytes.Buffer
-		_ = json.Compact(&prettyRequestJSON, requestBytes)
-
-		fmt.Printf("[EDGE-USER-SERVICE] %s | Correlation-ID : %s | Client IP : %s | Method : %s | %s | Request Body: %s\n",
-			startTime.Format("2006/01/02 - 15:04:05.000"),
-			correlationID,
-			c.ClientIP(),
-			c.Request.Method,
-			c.Request.URL.Path,
-			prettyRequestJSON.String(),
-		)
-
-		// Log information about the response
-		var prettyResponseJSON bytes.Buffer
-		_ = json.Compact(&prettyResponseJSON, responseBytes)
-
-		fmt.Printf("[EDGE-USER-SERVICE] %s | Correlation-ID : %s | Response Status : %d | Full Request Time : %s | Response Body: %s\n",
-			time.Now().Format("2006/01/02 - 15:04:05.000"),
-			correlationID,
-			responseStatus,
-			duration,
-			prettyResponseJSON.String(),
-		)
+		logger.Info().
+			Str("SERVICE", "MY_GIN_SERVICE").
+			Str("CORRELATION_ID", correlationID).
+			Str("RESPONSE_STATUS", strconv.Itoa(responseStatus)).
+			Str("FULL_REQUEST_TIME", duration.String()).
+			Msg(string(responseBytes))
 	}
 }
 

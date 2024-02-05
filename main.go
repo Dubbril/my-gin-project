@@ -9,19 +9,21 @@ import (
 	"github.com/Dubbril/my-gin-project/com/dubbril/learn/gin_framework/repositories"
 	"github.com/Dubbril/my-gin-project/com/dubbril/learn/gin_framework/services"
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 func main() {
+
+	// Load Config
+	viper.SetConfigFile("config.yaml")
+	if err := viper.ReadInConfig(); err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
+
 	// Initialize the database
-	database.Init()
-	defer func(db *gorm.DB) {
-		err := db.Close()
-		if err != nil {
-			return
-		}
-	}(database.GetDB())
+	//database.Init()
+	db := database.GetDB()
 
 	// Set Gin to release mode to disable debug output
 	gin.SetMode(gin.ReleaseMode)
@@ -34,7 +36,7 @@ func main() {
 	r.Use(middleware.LogHandler())
 
 	// Initialize repository and service
-	userRepo := repositories.NewUserRepository(database.GetDB())
+	userRepo := repositories.NewUserRepository(db)
 	userService := services.NewUserService(userRepo)
 
 	// Initialize controller

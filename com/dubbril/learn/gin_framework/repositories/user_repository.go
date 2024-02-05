@@ -4,7 +4,7 @@ package repositories
 import (
 	"github.com/Dubbril/my-gin-project/com/dubbril/learn/gin_framework/models"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 type UserRepository struct {
