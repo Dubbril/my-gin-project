@@ -2,25 +2,31 @@ package middleware
 
 import (
 	"bytes"
+	"github.com/Dubbril/my-gin-project/app/helper"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"strconv"
 	"time"
 )
 
-func logger() zerolog.Logger {
-	return zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
+var CorrelationID string
+
+func InitLogger() {
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339Nano}).
 		Level(zerolog.TraceLevel).
 		With().
+		Str("1_SERVICE", "MY_GIN_SERVICE").
 		Timestamp().
 		Logger()
+	zerolog.TimeFieldFormat = "2006-01-02T15:04:05.999Z07:00"
+	log.Logger = logger
 }
 
 // LogHandler is a middleware function to log information about incoming requests and outgoing responses.
 func LogHandler() gin.HandlerFunc {
-	logger := logger()
 	return func(c *gin.Context) {
 		// Capture request details
 		startTime := time.Now()
@@ -31,14 +37,21 @@ func LogHandler() gin.HandlerFunc {
 		}
 
 		// Get the value of the X-Correlation-ID header
-		correlationID := c.GetHeader("X-Correlation-ID")
-		logger.Info().
-			Str("SERVICE", "MY_GIN_SERVICE").
-			Str("CORRELATION_ID", correlationID).
-			Str("METHOD", c.Request.Method).
-			Str("URL", c.Request.URL.RequestURI()).
-			Str("CLIENT_IP", c.ClientIP()).
-			Msg(string(requestBytes))
+		CorrelationID = c.GetHeader("X-Correlation-ID")
+		buildLogReq := log.Info().
+			Str("2_CORRELATION_ID", CorrelationID).
+			Str("3_METHOD", c.Request.Method).
+			Str("4_URL", c.Request.URL.RequestURI()).
+			Str("5_CLIENT_IP", c.ClientIP())
+
+		// Handle response body plaintext on json
+		if helper.IsValidJSON(requestBytes) {
+			buildLogReq.RawJSON("6_BODY", requestBytes)
+		} else {
+			buildLogReq.Str("6_BODY", string(requestBytes))
+		}
+
+		buildLogReq.Msg("LOG_STEP_1")
 
 		// Create a custom response writer
 		w := &responseLogger{body: bytes.NewBuffer(nil), ResponseWriter: c.Writer}
@@ -51,12 +64,21 @@ func LogHandler() gin.HandlerFunc {
 		responseStatus := w.status
 		duration := time.Since(startTime)
 
-		logger.Info().
-			Str("SERVICE", "MY_GIN_SERVICE").
-			Str("CORRELATION_ID", correlationID).
-			Str("RESPONSE_STATUS", strconv.Itoa(responseStatus)).
-			Str("FULL_REQUEST_TIME", duration.String()).
-			Msg(string(responseBytes))
+		buildLogResp := log.Info().
+			Str("2_CORRELATION_ID", CorrelationID).
+			Str("3_RESPONSE_STATUS", strconv.Itoa(responseStatus)).
+			Str("4_FULL_REQUEST_TIME", duration.String())
+
+		// Handle response body plaintext on json
+		if helper.IsValidJSON(responseBytes) {
+			buildLogResp.RawJSON("5_BODY", responseBytes)
+		} else {
+			buildLogResp.Str("5_BODY", string(responseBytes))
+		}
+
+		buildLogResp.Msg("LOG_STEP_4")
+
+		CorrelationID = ""
 	}
 }
 

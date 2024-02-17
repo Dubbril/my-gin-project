@@ -1,4 +1,14 @@
-# my-gin-project
-It is a known issue in GoLand. Feel free to follow GO-12814.
-As a workaround, you can invoke Help | Find Action | Registry, find go.run.processes.with.pty and disable it.
+# My-gin-project
 
+- ### Before build comment this line on [config.go](./app/config/config.go)
+
+![Local Image](before_build.JPG)
+
+- ### Build image
+```
+docker build -t go-poc-app .
+```
+- ### Run Container
+```
+docker run --name go-app -p 8080:8080 -d --env-file .env go-poc-app
+```

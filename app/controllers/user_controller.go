@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"github.com/Dubbril/my-gin-project/com/dubbril/learn/gin_framework/models"
-	"github.com/Dubbril/my-gin-project/com/dubbril/learn/gin_framework/services"
+	"github.com/Dubbril/my-gin-project/app/models"
+	"github.com/Dubbril/my-gin-project/app/services"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"net/http"
@@ -100,4 +100,9 @@ func (ctrl *UserController) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
+}
+
+func (ctrl *UserController) CallExternal(c *gin.Context) {
+	result := ctrl.UserService.CallExternal()
+	c.JSON(http.StatusOK, result)
 }
